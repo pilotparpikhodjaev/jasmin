@@ -1,0 +1,216 @@
+version: "3.10"
+
+services:
+  redis:
+    image: redis:7-alpine
+    command:
+      - redis-server
+      - "--appendonly"
+      - "yes"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: jasmin
+      RABBITMQ_DEFAULT_PASS: jasmin
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: otp
+      POSTGRES_USER: otp
+      POSTGRES_PASSWORD: otp-secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U otp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  jasmin:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.dev
+    environment:
+      REDIS_CLIENT_HOST: redis
+      AMQP_BROKER_HOST: rabbitmq
+      JASMIN_REDIS_PORT: 6379
+    ports:
+      - "2775:2775" # SMPP
+      - "8990:8990" # HTTP API
+      - "1401:1401" # jCli
+    volumes:
+      - ./jasmin:/usr/jasmin/jasmin
+      # Mount OTP-specific config with AMQP publishing enabled
+      - ./misc/config/otp/jasmin.cfg:/etc/jasmin/jasmin.cfg
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  billing-service:
+    build:
+      context: ./services/billing-service
+    environment:
+      BILLING_DB_URL: postgresql+asyncpg://otp:otp-secret@postgres:5432/otp
+      BILLING_DB_POOL_MIN: "1"
+      BILLING_DB_POOL_MAX: "5"
+      BILLING_PORT: "8081"
+      BILLING_JASMIN_AMQP_HOST: rabbitmq
+      BILLING_JASMIN_AMQP_PORT: "5672"
+      BILLING_JASMIN_AMQP_USER: jasmin
+      BILLING_JASMIN_AMQP_PASSWORD: jasmin
+      BILLING_JASMIN_AMQP_VHOST: /
+      BILLING_LOG_LEVEL: INFO
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  routing-service:
+    build:
+      context: ./services/routing-service
+    environment:
+      ROUTING_DB_URL: postgres://otp:otp-secret@postgres:5432/otp?sslmode=disable
+      PORT: "8082"
+      GIN_MODE: release
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+    environment:
+      API_GATEWAY_PORT: "8080"
+      API_GATEWAY_JASMIN_HTTP_URL: http://jasmin:8990
+      API_GATEWAY_JASMIN_USER: otp_api
+      API_GATEWAY_JASMIN_PASSWORD: otp_api_secret
+      API_GATEWAY_BILLING_URL: http://billing-service:8081
+      API_GATEWAY_ROUTING_URL: http://routing-service:8082
+      API_GATEWAY_REDIS_HOST: redis
+      API_GATEWAY_REDIS_PORT: "6379"
+      API_GATEWAY_RATE_LIMIT_RPS: "50"
+      API_GATEWAY_DEFAULT_PRICE_PER_SMS: "0.02"
+      API_GATEWAY_DEFAULT_CURRENCY: USD
+      API_GATEWAY_DEFAULT_SENDER: OTP
+      API_GATEWAY_DEFAULT_DLR_CALLBACK: http://api-gateway:8080/v1/webhooks/dlr
+      API_GATEWAY_ADMIN_TOKEN: otp-admin-secret
+    ports:
+      - "8080:8080"
+    depends_on:
+      jasmin:
+        condition: service_started
+      billing-service:
+        condition: service_started
+      routing-service:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./docker/prometheus/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      jasmin:
+        condition: service_started
+      api-gateway:
+        condition: service_started
+      billing-service:
+        condition: service_started
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.5
+    environment:
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource"
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./docker/grafana/dashboards:/opt/grafana-dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: unless-stopped
+
+  client-web:
+    build:
+      context: ./services/client-web
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080
+      NEXTAUTH_URL: http://localhost:3001
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-secret-key-change-in-production}
+    ports:
+      - "3001:3000"
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+  admin-web:
+    build:
+      context: ./services/admin-web
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://api-gateway:8080
+      NEXTAUTH_URL: http://localhost:3002
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-secret-key-change-in-production}
+    ports:
+      - "3002:3000"
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  rabbitmq-data:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+

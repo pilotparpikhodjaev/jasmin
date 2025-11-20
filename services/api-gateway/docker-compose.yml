@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Server
+      API_GATEWAY_PORT: 8080
+      ENVIRONMENT: development
+
+      # Jasmin
+      API_GATEWAY_JASMIN_HTTP_URL: http://jasmin:8990
+      API_GATEWAY_JASMIN_JCLI_URL: http://jasmin:8991
+      API_GATEWAY_JASMIN_USER: admin
+      API_GATEWAY_JASMIN_PASSWORD: password
+
+      # Billing Service
+      API_GATEWAY_BILLING_URL: http://billing-service:8081
+
+      # Routing Service
+      API_GATEWAY_ROUTING_URL: http://routing-service:8082
+
+      # Redis
+      API_GATEWAY_REDIS_HOST: redis
+      API_GATEWAY_REDIS_PORT: 6379
+      API_GATEWAY_REDIS_DB: 0
+
+      # JWT
+      JWT_SECRET_KEY: dev-secret-key-change-in-production
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_DAYS: 30
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: 90
+
+      # Defaults
+      API_GATEWAY_DEFAULT_CURRENCY: UZS
+      API_GATEWAY_DEFAULT_PRICE_PER_SMS: 50.0
+      API_GATEWAY_RATE_LIMIT_RPS: 50
+    depends_on:
+      - redis
+    networks:
+      - jasmin-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - jasmin-network
+    restart: unless-stopped
+
+networks:
+  jasmin-network:
+    driver: bridge
+
+volumes:
+  redis-data:
+

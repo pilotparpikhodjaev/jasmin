@@ -1,0 +1,25 @@
+{{- if and .Values.routingService.enabled .Values.routingService.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "otp-sms-platform.fullname" . }}-routing-service
+  labels:
+    {{- include "otp-sms-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: routing-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "otp-sms-platform.fullname" . }}-routing-service
+  minReplicas: {{ .Values.routingService.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.routingService.autoscaling.maxReplicas }}
+  metrics:
+  {{- if .Values.routingService.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.routingService.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+{{- end }}

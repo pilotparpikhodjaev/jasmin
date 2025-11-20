@@ -1,0 +1,260 @@
+{
+  "info": {
+    "_postman_id": "7c40c3fa-9b4a-4f4d-9d8d-8047a15e6c21",
+    "name": "Jasmin OTP Gateway",
+    "description": "Collection for high-volume OTP traffic over the Jasmin API Gateway. Use X-API-Key that you issued in the billing service. All examples target the Docker Compose environment (localhost).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080/v1"
+    },
+    {
+      "key": "templateId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "apiKey",
+      "value": "sk_live_xxxx"
+    }
+  ],
+  "item": [
+    {
+      "name": "OTP SMS",
+      "item": [
+        {
+          "name": "Send OTP (Custom message)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"+998991112233\",\n  \"message\": \"349102 is your secure OTP\",\n  \"sender\": \"ANORBANK\",\n  \"metadata\": {\n    \"otp_code\": \"349102\",\n    \"channel\": \"mobile\"\n  },\n  \"dlr_callback_url\": \"https://your-app.example.com/dlr\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/otp/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "otp",
+                "send"
+              ]
+            },
+            "description": "Direct message mode. Provide the full SMS body. Either message or template_id must be supplied."
+          }
+        },
+        {
+          "name": "Send OTP (Approved template)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to\": \"+998991112233\",\n  \"template_id\": \"{{templateId}}\",\n  \"metadata\": {\n    \"code\": \"612455\",\n    \"product\": \"Mobile banking\"\n  },\n  \"sender\": \"ANORBANK\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/otp/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "otp",
+                "send"
+              ]
+            },
+            "description": "Template mode. The template must be approved by an administrator. Supply metadata with variables referenced by the template body."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Templates",
+      "item": [
+        {
+          "name": "Create template",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"OTP авторизация\",\n  \"content\": \"Ваш OTP: {{code}}. Никому не сообщайте.\",\n  \"variables\": [\"code\"],\n  \"account_id\": \"{{accountId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "templates"
+              ]
+            },
+            "description": "Creates a template and puts it into pending moderation. account_id is inferred from the API key if omitted."
+          }
+        },
+        {
+          "name": "List my templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/templates",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "templates"
+              ]
+            },
+            "description": "Returns templates belonging to the authenticated account."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "item": [
+        {
+          "name": "Get balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/balance",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "balance"
+              ]
+            },
+            "description": "Shows prepaid balance, credit limit and currency."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List pending templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/templates?status=pending",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "templates"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            },
+            "description": "Requires an admin API key."
+          }
+        },
+        {
+          "name": "Approve template",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"admin_comment\": \"Готово к использованию\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/templates/{{templateId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "templates",
+                "{{templateId}}",
+                "status"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Delivery report payload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message_id\": \"6862b2cc-45b5-4cf2-b825-3cfb93de9b46\",\n  \"status\": \"DELIVERED\",\n  \"phone_number\": \"+998991112233\",\n  \"country\": \"UZ\",\n  \"parts\": 1,\n  \"price\": \"0.032\",\n  \"status_date\": \"2025-05-15T09:03:12Z\",\n  \"metadata\": {\n    \"otp_code\": \"349102\"\n  }\n}"
+            },
+            "url": {
+              "raw": "https://your-app.example.com/dlr",
+              "protocol": "https",
+              "host": [
+                "your-app",
+                "example",
+                "com"
+              ],
+              "path": [
+                "dlr"
+              ]
+            },
+            "description": "Example payload your service will receive when you specify dlr_callback_url while sending messages."
+          }
+        }
+      ]
+    }
+  ]
+}
+

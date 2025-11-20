@@ -1,0 +1,44 @@
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+
+import { cn } from "@/lib/utils";
+
+const Tabs = TabsPrimitive.Root;
+
+const TabsList = TabsPrimitive.List;
+
+const TabsTrigger = TabsPrimitive.Trigger;
+
+const TabsContent = TabsPrimitive.Content;
+
+const StyledTabsList = ({ className, ...props }: TabsPrimitive.TabsListProps) => (
+  <TabsList
+    className={cn(
+      "inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground",
+      className,
+    )}
+    {...props}
+  />
+);
+
+const StyledTabsTrigger = ({ className, ...props }: TabsPrimitive.TabsTriggerProps) => (
+  <TabsTrigger
+    className={cn(
+      "inline-flex min-w-[120px] items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground",
+      className,
+    )}
+    {...props}
+  />
+);
+
+const StyledTabsContent = ({ className, ...props }: TabsPrimitive.TabsContentProps) => (
+  <TabsContent
+    className={cn(
+      "mt-3 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      className,
+    )}
+    {...props}
+  />
+);
+
+export { Tabs, StyledTabsList as TabsList, StyledTabsTrigger as TabsTrigger, StyledTabsContent as TabsContent };
+

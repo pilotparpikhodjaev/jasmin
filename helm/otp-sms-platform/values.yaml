@@ -1,0 +1,245 @@
+global:
+  storageClass: ""
+  imageRegistry: ""
+  imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+jasmin:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: jasmin-sms
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    smpp:
+      port: 2775
+    http:
+      port: 8990
+    jcli:
+      port: 1401
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  autoscaling:
+    enabled: false
+  config:
+    redisHost: "{{ .Release.Name }}-redis-master"
+    amqpHost: "{{ .Release.Name }}-rabbitmq"
+
+apiGateway:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: api-gateway
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: api.otp.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: api-gateway-tls
+        hosts:
+          - api.otp.example.com
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  config:
+    jasminHttpUrl: "http://{{ .Release.Name }}-jasmin:8990"
+    billingUrl: "http://{{ .Release.Name }}-billing-service:8081"
+    routingUrl: "http://{{ .Release.Name }}-routing-service:8082"
+    redisHost: "{{ .Release.Name }}-redis-master"
+    rateLimitRps: 100
+    defaultCurrency: "USD"
+    defaultSender: "OTP"
+
+billingService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: billing-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8081
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+  config:
+    dbPoolMin: 2
+    dbPoolMax: 10
+    amqpHost: "{{ .Release.Name }}-rabbitmq"
+
+routingService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: routing-service
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8082
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+
+webAdmin:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: web-admin
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5173
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - host: admin.otp.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: web-admin-tls
+        hosts:
+          - admin.otp.example.com
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  config:
+    apiBaseUrl: "https://api.otp.example.com"
+    billingBaseUrl: "http://{{ .Release.Name }}-billing-service:8081"
+
+postgresql:
+  enabled: true
+  auth:
+    username: otp
+    password: otp-secret
+    database: otp
+  primary:
+    persistence:
+      enabled: true
+      size: 10Gi
+    resources:
+      limits:
+        memory: 1Gi
+        cpu: 1000m
+      requests:
+        memory: 512Mi
+        cpu: 500m
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: true
+      size: 5Gi
+    resources:
+      limits:
+        memory: 512Mi
+        cpu: 500m
+      requests:
+        memory: 256Mi
+        cpu: 250m
+
+rabbitmq:
+  enabled: true
+  auth:
+    username: jasmin
+    password: jasmin
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+    requests:
+      memory: 512Mi
+      cpu: 500m
+
+prometheus:
+  enabled: true
+  server:
+    enabled: true
+    resources:
+      limits:
+        memory: 2Gi
+        cpu: 1000m
+      requests:
+        memory: 1Gi
+        cpu: 500m
+    persistentVolume:
+      enabled: true
+      size: 20Gi
+
+grafana:
+  enabled: true
+  adminPassword: admin
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    limits:
+      memory: 512Mi
+      cpu: 500m
+    requests:
+      memory: 256Mi
+      cpu: 250m

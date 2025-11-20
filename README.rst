@@ -1,13 +1,13 @@
 .. image:: https://raw.githubusercontent.com/jookies/jasmin/master/misc/doc/sources/_static/jasmin-logo-small.png
 
-Jasmin - Open source SMS gateway
-################################
+Qalb SMS Gateway - Open source SMS gateway
+##########################################
 
 |contribs| |ubuntu-package| |redhat-package| |ci| |docker| |docs| |support|
 
 Introduction
 ************
-Jasmin is a very complete open source SMS Gateway with many enterprise-class features such as:
+Qalb SMS Gateway is a very complete open source SMS Gateway with many enterprise-class features such as:
 
 * SMPP Client / Server
 * HTTP Client / Server
@@ -19,7 +19,7 @@ Jasmin is a very complete open source SMS Gateway with many enterprise-class fea
 * Supports easy creation and sending of specialized/binary SMS like mono Ringtones, WAP Push, Vcards
 * Supports concatenated SMS strings (long SMS)
 
-Jasmin relies heavily on message queuing through message brokers (Using AMQP), it is designed for performance,
+Qalb SMS Gateway relies heavily on message queuing through message brokers (Using AMQP), it is designed for performance,
 high traffic loads and full in-memory execution.
 
 .. figure:: https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/PoweredByDO/DO_Powered_by_Badge_blue.svg
@@ -37,12 +37,12 @@ Architecture
    :figwidth: 100%
    :target: https://docs.jasminsms.com/en/latest/architecture/index.html
 
-Jasmin core and its external connectors (used for AMQP, Redis, SMPP, HTTP, Telnet ...) are written in Python
+Qalb SMS Gateway core and its external connectors (used for AMQP, Redis, SMPP, HTTP, Telnet ...) are written in Python
 and are mainly based on `Twisted matrix <https://twistedmatrix.com/>`_, an event-driven networking engine.
 
 Getting started
 ***************
-Refer to `Installation steps <http://docs.jasminsms.com/en/latest/installation/index.html>`_ to get Jasmin gateway up and running quickly with a simple SMS sending scenario.
+Refer to `Installation steps <http://docs.jasminsms.com/en/latest/installation/index.html>`_ to get Qalb SMS Gateway up and running quickly with a simple SMS sending scenario.
 
 Documentation
 *************

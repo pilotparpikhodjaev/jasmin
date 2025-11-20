@@ -10,7 +10,27 @@ scrape_configs:
     static_configs:
       - targets:
           - 'jasmin:1401'
+  - job_name: jasmin_http
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 'jasmin:8990'
   - job_name: rabbitmq
     static_configs:
       - targets:
           - 'rabbit-mq:15692'
+  - job_name: api_gateway
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 'api-gateway:8080'
+  - job_name: billing_service
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 'billing-service:8081'
+  - job_name: routing_service
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - 'routing-service:8082'

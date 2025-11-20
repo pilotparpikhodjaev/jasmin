@@ -1,0 +1,56 @@
+{{- if .Values.routingService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "otp-sms-platform.fullname" . }}-routing-service
+  labels:
+    {{- include "otp-sms-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: routing-service
+spec:
+  {{- if not .Values.routingService.autoscaling.enabled }}
+  replicas: {{ .Values.routingService.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "otp-sms-platform.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: routing-service
+  template:
+    metadata:
+      labels:
+        {{- include "otp-sms-platform.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: routing-service
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: routing-service
+        image: "{{ .Values.routingService.image.repository }}:{{ .Values.routingService.image.tag }}"
+        imagePullPolicy: {{ .Values.routingService.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: 8082
+          protocol: TCP
+        env:
+        - name: PORT
+          value: "8082"
+        - name: ROUTING_DB_URL
+          value: {{ include "otp-sms-platform.postgresql.url" . | quote }}
+        - name: GIN_MODE
+          value: "release"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          {{- toYaml .Values.routingService.resources | nindent 10 }}
+{{- end }}

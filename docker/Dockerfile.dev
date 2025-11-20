@@ -9,6 +9,8 @@ RUN groupadd -r jasmin && useradd -r -g jasmin jasmin
 RUN apt-get update && apt-get install -y \
     libffi-dev \
     libssl-dev \
+    git \
+    ca-certificates \
     rabbitmq-server \
     redis-server \
     supervisor \
@@ -28,7 +30,7 @@ RUN mkdir -p /etc/jasmin/resource \
     /etc/jasmin/store \
     /var/log/jasmin \
   && chown jasmin:jasmin /etc/jasmin/store \
-    /var/log/jasmin 
+    /var/log/jasmin
 
 WORKDIR /usr/jasmin
 

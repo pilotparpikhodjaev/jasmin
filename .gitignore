@@ -58,3 +58,9 @@ celerybeat-schedule.db
 *.rpm
 
 .env
+
+# Claude Code
+.claude/*
+!.claude/settings.json
+!.claude/commands/
+!.claude/project.json

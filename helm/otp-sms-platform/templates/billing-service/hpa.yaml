@@ -1,0 +1,25 @@
+{{- if and .Values.billingService.enabled .Values.billingService.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "otp-sms-platform.fullname" . }}-billing-service
+  labels:
+    {{- include "otp-sms-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: billing-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "otp-sms-platform.fullname" . }}-billing-service
+  minReplicas: {{ .Values.billingService.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.billingService.autoscaling.maxReplicas }}
+  metrics:
+  {{- if .Values.billingService.autoscaling.targetCPUUtilizationPercentage }}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: {{ .Values.billingService.autoscaling.targetCPUUtilizationPercentage }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,19 @@
+{{- if .Values.routingService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "otp-sms-platform.fullname" . }}-routing-service
+  labels:
+    {{- include "otp-sms-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: routing-service
+spec:
+  type: {{ .Values.routingService.service.type }}
+  ports:
+  - port: {{ .Values.routingService.service.port }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "otp-sms-platform.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: routing-service
+{{- end }}

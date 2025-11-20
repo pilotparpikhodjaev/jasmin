@@ -1,0 +1,10 @@
+{
+  "commands": {
+    "dev": "npm run dev || yarn dev || pnpm dev",
+    "build": "npm run build || yarn build || pnpm build",
+    "test": "npm test || yarn test || pnpm test",
+    "lint": "npm run lint || yarn lint || pnpm lint",
+    "format": "npm run format || yarn format || pnpm format"
+  },
+  "budgets": {}
+}

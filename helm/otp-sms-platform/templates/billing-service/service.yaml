@@ -1,0 +1,19 @@
+{{- if .Values.billingService.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "otp-sms-platform.fullname" . }}-billing-service
+  labels:
+    {{- include "otp-sms-platform.labels" . | nindent 4 }}
+    app.kubernetes.io/component: billing-service
+spec:
+  type: {{ .Values.billingService.service.type }}
+  ports:
+  - port: {{ .Values.billingService.service.port }}
+    targetPort: http
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "otp-sms-platform.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: billing-service
+{{- end }}
